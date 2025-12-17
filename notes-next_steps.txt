@@ -1,0 +1,14 @@
+"""Next step: 
+1. Figure out whether I can achieve not openning the browser every time.
+2. Figure out how to also find the links that are not in href form (like clickables.
+one idea may be to simulate clicking "suspicious" element in the virtual browser,
+and if page.url is different, collect it.)
+
+    potential clickables: 
+    1. Use this to see:
+    document.querySelectorAll("[data-block-id].notion-page-block").forEach(el => {
+    el.style.outline = "2px solid red";});  // highlight element
+
+    2. Proceed Anyway button: 
+    <a rel="noopener noreferrer" class="notion-link" style="display: inline; color: inherit; text-decoration: underline; user-select: none; cursor: pointer;">proceed anyway</a>
+"""

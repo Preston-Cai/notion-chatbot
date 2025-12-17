@@ -1,0 +1,25 @@
+import asyncio
+
+async def func(code: int) -> None:
+    """Prints start with code, wait, and prints stop."""
+    print("started ", code)
+    asyncio.sleep(3)
+    print("stopped ", code)
+
+tasks = [asyncio.create_task(func(i)) for i in range(5)]
+
+asyncio.gather(*tasks)
+
+
+
+import asyncio
+
+def func(code: int) -> None:
+    """Prints start with code, wait, and prints stop."""
+    print("started ", code)
+    asyncio.sleep(3)
+    print("stopped ", code)
+
+tasks = [asyncio.create_task(func(i)) for i in range(5)]
+
+asyncio.gather(*tasks)
