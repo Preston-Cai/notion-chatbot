@@ -1,6 +1,20 @@
 """
-IMPORTANT NOTE: this version fixed the subtle issue as described in the docstring in try6
-by writing `soup.prettify()` to the html file.
+IMPORTANT NOTE: we've found out on the same day when the error occurs that the actual problem is
+not due to async api detected.
+The actual problem lies in the process of saving htmls. It has actually saved the FULL html, but it broke the structure of the html.
+possibly due to writing issues when directly writing the html string to file.
+Weirdly enough, the part of html that had been saved contained text like "javascript must be enabled",
+which misled me to think the problem was notion detection.
+(see experiments\debug_2025-12-19\inproper-html-saved_by_try6.html for the incorrectly saved html file.)
+
+Correct approach: after turning html into soup,
+directly write `soup.prettify()` to an html file.
+
+# The following are outdated notes:
+
+this version fails on the notion url (URL and URL2). Async_playwright api
+probably gets detected by notion. Thus, I have to switch back to sync_api and use a multithreads
+approach for parallel scraping.
 
 
 Next step: 
@@ -169,11 +183,7 @@ class SoupsMaker():
         except Exception as e:
             print("An error occurs when getting html or baking soup. Error: ", e)
             return
-
-        # Save prettified html and extracted text
-        self.save_html_and_text(soup)
-        print("HTML saved.")
-                
+        
         for link in soup.find_all('a'):
             new_link = link.get('href')
             if new_link is None:
@@ -247,6 +257,10 @@ class SoupsMaker():
                 html = await self.get_html(page.url, page=page)
                 print("## html fetched ##")
                 
+                # Save html to local directory
+                self.save_html(html)
+                print("## html saved ##")
+
                 return html
 
         # Get page html and return (if the url was not redirected)
@@ -257,6 +271,11 @@ class SoupsMaker():
         () => document.documentElement.outerHTML
             """)
         print("## html fetched ##")
+        print("html is: ", html)
+
+        # Save html to local directory
+        self.save_html(html)
+        print("## html saved ##")
 
         return html
 
@@ -269,40 +288,23 @@ class SoupsMaker():
         return BeautifulSoup(html, "html.parser")
     
     @staticmethod
-    def save_html_and_text(soup: BeautifulSoup) -> None:
-        """Save prettified html to html_docs/.
-        Save extracted text files to text_docs/."""
-
-        # Create directories if not exist
+    def save_html(html: str) -> None:
+        """Save the given html document to a local directory called html_docs.
+        The filename is generated based on the number of files already in the directory.
+        """
+                    
         if not os.path.exists("html_docs"):
             os.makedirs("html_docs")
-        if not os.path.exists("text_docs"):
-            os.makedirs("text_docs")
 
         file_count = len(os.listdir("html_docs"))
-        filename_html = f"html_docs/page_{file_count + 1}.html"
-        filename_text = f"text_docs/page_{file_count + 1}.txt"
+        filename = f"html_docs/page_{file_count + 1}.html"
 
-        # Extract clean text
-        text = "\n".join(
-            line.strip()
-            for line in soup.get_text("\n").split("\n")
-            if line.strip()
-        )
-
-        # Write to html and text files
-        with open(filename_html, "w", encoding="utf-8") as f:
-            f.write(soup.prettify())
-
-        with open(filename_text, 'w', encoding="utf-8") as f:
-            f.write(text)
-        print(f"HTML document saved as {filename_html}")
-        print(f"Text document saved as {filename_text}")
-
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(html)
+        print(f"HTML document saved as {filename}")
     
     def _start_by_mode(self) -> None:
         """__init__ helper method to initialize links and to_visit based on mode.
-        Also, if in fresh mode, clear files in html_docs.
 
         Preconditions:
           - if self._resume is True, progress files must in csv format
@@ -313,14 +315,10 @@ class SoupsMaker():
             self.links = set()
             self.to_visit = {self.starting_url}
 
-            # Clear files in html_docs and text_docs
+            # Clear files in html_docs
             if os.path.exists("html_docs"):
                 for filename in os.listdir("html_docs"):
                     file_path = os.path.join("html_docs", filename)
-                    os.remove(file_path)
-            if os.path.exists("text_docs"):
-                for filename in os.listdir("text_docs"):
-                    file_path = os.path.join("text_docs", filename)
                     os.remove(file_path)
             return
         
