@@ -1,0 +1,2 @@
+# Ignore HTML in language stats (html files are generated in scraping)
+*.html linguist-generated=true
