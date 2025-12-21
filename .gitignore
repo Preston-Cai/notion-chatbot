@@ -15,6 +15,11 @@ venv.bak/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# docs
-html_docs/
-text_docs/
+# data/progress
+progress/*.csv
+html_docs/*.html
+text_docs/*.txt
+
+# other temp files
+/*.html
+/*.txt
