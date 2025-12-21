@@ -1,24 +1,16 @@
 """
+SoupsMaker: what it does
+1. Deep crawls all subpages of the given url.
+2. Saves html docs and extracted text of visited pages.
+3. Saves all visted links to csv after finished scraping all links
+4. (Handled by `run_soupsmaker`) if interrupted, save links to visit and links visited as progress.
+
 IMPORTANT NOTE: this version fixed the subtle issue as described in the docstring in try6
 by writing `soup.prettify()` to the html file.
 
 
 Next step: 
-1. Figure out how to also find the links that are not in href form (like clickables.
-one idea may be to simulate clicking "suspicious" element in the virtual browser,
-and if page.url is different, collect it.)
-
-    potential clickables: 
-    1. Use this to see:
-    document.querySelectorAll("[data-block-id].notion-page-block").forEach(el => {
-    el.style.outline = "2px solid red";});  // highlight element
-
-    2. (solved) Proceed Anyway button: 
-    <a rel="noopener noreferrer" class="notion-link" style="display: inline; color: inherit; text-decoration: underline; user-select: none; cursor: pointer;">proceed anyway</a>
-
-2. Tune sleep setting.
-3. Solve an issue of handling interruption (if interrupted, links could be either added before being scraped,
-or lost).
+1. Tune sleep setting.
 """
 
 
@@ -47,25 +39,24 @@ class SoupsMaker():
     Instance Attributes:
       - url: the given url tuple in the form of (url, base_url), where base_url is the base site to be scraped.
       - links: all the distict urls associated with the starting url.
-      - soups: soups that have been made.
+      - to_visit: set of url tuples that are yet to be visited.
 
     """
     # Private Instance Attributes:
     #   - _context: the playwright browser context used to fetch pages.
     #   - _cap: maximum number of links to be processed at a time.
     #   - _pages: store browswer tabs that will stay oepn throgh the lifetime of SoupsMaker.
-    #   - _to_visit: set of url tuples that are yet to be visited.
     #   - _resume: whether resume from previous progress or not (start fresh). Default to False.
     #   - _page_lock: an asyncio lock to prevent race condition when allocating pages.
 
     starting_url: tuple[str, str] = URL, BASE_URL
     links: set[str]
-    soups: list[BeautifulSoup]
+    to_visit: set[tuple[str, str]]
 
     _context: Optional[BrowserContext] = None
     _cap: int = 10
     _pages: list[Page]
-    _to_visit: set[tuple[str, str]]
+    
     _resume: bool
     _page_lock: asyncio.Lock
 
@@ -80,11 +71,13 @@ class SoupsMaker():
         self._resume = resume
         self._page_lock = asyncio.Lock()
 
-        self._start_by_mode()  # intialize links and _to_visit based on the mode 
+        self._start_by_mode()  # intialize self.links and self.to_visit based on the mode 
 
     async def main(self) -> None:
-        """Control the soups baking process. Lannch a playwright broswer, 
-        get all links and extract and save text from those pages, and close browser.
+        """Control the soups baking process. 
+        Lannch a playwright broswer, find all subpages of self.starting_url, 
+        extract htmls and text from those pages and save locally.
+        After finished, save all links visited and close browser.
         """
         async with async_playwright() as p:
             # Launch real Chromium
@@ -109,9 +102,20 @@ class SoupsMaker():
             except Exception as e:
                 print("An error occurs when adding all links. Error: ", e)
 
-            print("Links all added.")
+            # Clean up
             await browser.close()
             self.context = None
+        
+        # Save all visited links
+        with open('progress/all_links_visited.csv', 'w', newline='') as f:
+            data = list(self.links)
+            num_columns = 10    # write at most 10 items per row
+            writer = csv.writer(f, delimiter=',')
+            for i in range(0, len(data), num_columns):
+                writer.writerow(data[i:i + num_columns])
+            
+            print("####### All links added!! #######")
+            print("Total number of links added: ", len(self.links))
 
     async def add_all_links(self) -> None:
         """Add all links associated with (i.e. accessible by) the given url to links.
@@ -144,8 +148,8 @@ class SoupsMaker():
             # for debugging only
             print("number of pages stored: ", len(self._pages))
                 
-            print(f"Number of links in to_visit: {len(self.to_visit)}, "
-            "and the links are: ", {url for url, _ in self.to_visit})
+            print(f"Number of links in to_visit: {len(self.to_visit)}")
+            # print("And the links are: ", {url for url, _ in self.to_visit})
 
     async def process_link(self, url_this_time: tuple[str, str]) -> Optional[set[tuple[str, str]]]:
         """Process the given url tuple and return a new set of url tuples as new found links.
@@ -172,7 +176,6 @@ class SoupsMaker():
 
         # Save prettified html and extracted text
         self.save_html_and_text(soup)
-        print("HTML saved.")
                 
         for link in soup.find_all('a'):
             new_link = link.get('href')
@@ -335,7 +338,7 @@ class SoupsMaker():
                 for row in reader:
                     for url in row:
                         self.links.add(url)
-            print(f"Resumed {len(self.links)} links from progress_links.csv")
+            print(f"Resumed {len(self.links)} visited links from progress_links.csv")
         except FileNotFoundError:
             print("No progress_links.csv file found." \
             " Set resume to False and try again.")
@@ -347,27 +350,46 @@ class SoupsMaker():
                 for row in reader:
                     for url in row:
                         self.to_visit.add((url, self.starting_url[1]))
-            print(f"Resumed {len(self.to_visit)} to_visit links from progress_to_visit.csv")
+            print(f"Resumed {len(self.to_visit)} to-visit links from progress_to_visit.csv")
         except FileNotFoundError:
             print("No progress_to_visit.csv file found. " \
             "Set resume to False and try again.")
 
     def save_progress(self) -> None:
         """Save the current progress (self.links and self.to_visit) to csv files.
+        Write at most 10 items each row.
+
+        Before writing to csv, add urls that the agent is currently visiting
+        (but has not done visiting) back to self.to_visit
         """
 
+        # Add current pages back to self.to_visit
+        for page in self._pages:
+            self.to_visit.add((page.url, self.starting_url[1]))
+  
         if not os.path.exists("progress"):
             os.makedirs("progress")
 
         mode = 'a' if self._resume else 'w'
         with open("progress/progress_links.csv", mode, newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(list(self.links))
+
+            data = list(self.links)
+            max_col = 10    # write at most 10 items per row
+
+            writer = csv.writer(f, delimiter=',')
+            for i in range(0, len(data), max_col):
+                writer.writerow(data[i:i + max_col])
             print(f"Saved {len(self.links)} links to progress_links.csv")
 
         with open("progress/progress_to_visit.csv", mode, newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow([url_tuple[0] for url_tuple in self.to_visit])
+
+            data = [url_tuple[0] for url_tuple in self.to_visit]
+            max_col = 10    # write at most 10 items per row
+
+            writer = csv.writer(f, delimiter=',')
+            for i in range(0, len(data), max_col):
+                writer.writerow(data[i:i + max_col])
+            print(f"Saved {len(self.to_visit)} links to progress_to_visit.csv")
 
 
 async def run_soupsmaker(starting_url: tuple[str, str] = (URL, BASE_URL),
@@ -380,34 +402,9 @@ async def run_soupsmaker(starting_url: tuple[str, str] = (URL, BASE_URL),
     except asyncio.CancelledError:
         print("Process of adding links interrupted. ")
         print("Number of links added so far:\n", len(soupsmaker.links))
-        soupsmaker.save_progress()
+        soupsmaker.save_progress()  # save progress if interrupted
         raise
 
 
 if __name__ == '__main__':
-    asyncio.run(run_soupsmaker(cap=3, resume=False, starting_url=(URL, BASE_URL)))
-    # soupsmaker = SoupsMaker(starting_url=(URL2, BASE_URL), cap=3, resume=True)
-    # try:
-    #     asyncio.run(soupsmaker.main())
-    # except KeyboardInterrupt:
-    #     print("Process of adding links interrupted. ")
-    #     print("Number of links added so far:\n", len(soupsmaker.links))
-    #     soupsmaker.save_progress()
-    #     raise
-    # print(soupsmaker.links)
-    
-    
-
-# # Extract clean text
-# text = "\n".join(
-#     line.strip()
-#     for line in soup.get_text("\n").split("\n")
-#     if line.strip()
-# )
-
-# # Write text and html to file
-# with open("webtext.txt", "w", encoding="utf-8") as f:
-#     f.write(text)
-
-# with open("parsed.html", "w", encoding="utf-8") as f:
-#     f.write(soup.prettify())
+    asyncio.run(run_soupsmaker(cap=5, resume=True, starting_url=(URL, BASE_URL)))

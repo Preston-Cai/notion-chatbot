@@ -23,18 +23,25 @@
 3. Find hidden links through clickables, etc.
 4. Save partial progress (links that have been scraped/to be visited) so that I can continue the process.
 5. Potential page reuse allocation conflict caused by recursive call after redirection triggered by clicking clickable
-6. Saved htmls incorrectly (the format was broken, which misled me to think that javascript support failed and that it didn't get the full html, but it DID). Correct approach: directly write `soup.prettify()` to an html.
+6. Saved htmls with a broken format, which misled me to think that javascript support failed and that it didn't get the full html, but it DID. Correct approach: directly write `soup.prettify()` to an html.
 
 ### Small issues (solved/unsolved)
 1. Links processing and parsing (join with absolute, remove query params and fragments)
 2. Avoid creating duplicate tasks (more efficient in resume mode)
 3. Prevent race condition with a asyncio lock and ensure number of pages is properly capped.
+4. When saving progress on interruption, add links that are currently being visited (but are in neither self.links nor self.to_visit) back to self.to_visit, as the soupsmaker has not finished scraping those links.
 
 
 ## Plans for RAG
-1. Split html docs using HTML splitter
-HTML spliter: generate `Document` objects.
-https://docs.langchain.com/oss/python/integrations/splitters/split_html
+1. Split data with langchain splitters and create `Document` objects
+#### Plan A: Split text docs using recursive text splitter
+Advantage: it attempts to keep paragraphs intact. For example, if a paragraph (or sentence) exceeds chunk size limit, it's moved to the next chunk.
+https://docs.langchain.com/oss/python/integrations/splitters/recursive_text_splitter
+
+#### Plan B: Split html docs using HTML splitter
+Downside: notion's html pages have too many distracting elements
+- HTML loader: take html file and generate a list of `Document` objects of (unsplitted) htmls. https://docs.langchain.com/oss/python/integrations/document_loaders/bshtml
+- HTML spliter: take html strings and generate `Document` objects of splitted html segments. https://docs.langchain.com/oss/python/integrations/splitters/split_html
 
 2. Embed with OpenAI and store with Chroma
 Vector store: 
@@ -44,7 +51,8 @@ https://docs.langchain.com/oss/python/integrations/vectorstores/chroma
 
 
 ## Other links
-A similar loader to my soupsmaker engine:
-https://docs.langchain.com/oss/python/integrations/document_loaders/recursive_url
-HTML loader:
-https://docs.langchain.com/oss/python/integrations/document_loaders/bshtml
+Scrapers I found online (lack certain features I need):
+- RecursiveUrlLoader (not dynamic): https://docs.langchain.com/oss/python/integrations/document_loaders/url
+- Dynamic url loader (not recursive): https://docs.langchain.com/oss/python/integrations/document_loaders/recursive_url
+
+
