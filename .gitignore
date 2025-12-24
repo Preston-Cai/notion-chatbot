@@ -22,4 +22,7 @@ text_docs/*.txt
 
 # other temp files
 /*.html
-/*.txt
+/webtext.txt
+
+# database dir
+/*_db

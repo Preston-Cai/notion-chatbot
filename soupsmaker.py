@@ -1,10 +1,4 @@
 """
-SoupsMaker: what it does
-1. Deep crawls all subpages of the given url.
-2. Saves html docs and extracted text of visited pages.
-3. Saves all visted links to csv after finished scraping all links
-4. (Handled by `run_soupsmaker`) if interrupted, save links to visit and links visited as progress.
-
 IMPORTANT NOTE: this version fixed the subtle issue as described in the docstring in try6
 by writing `soup.prettify()` to the html file.
 
@@ -13,11 +7,11 @@ Next step:
 1. Tune sleep setting.
 """
 
-
 from playwright.async_api import async_playwright, BrowserContext, Page
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import asyncio
+import time
 
 import os
 from typing import Optional
@@ -35,40 +29,50 @@ BASE_URL3 = URL3
 class SoupsMaker():
     """A class that represents the process of
     making soups given one ingredient (the url).
+
+    SoupsMaker: what it does
+        1. Deep crawls all subpages of the given url.
+        2. Saves html docs (if enabled) and extracted text of visited pages.
+        3. Saves all visted links to csv after finished scraping all links
+        4. (Handled by `run_soupsmaker`) if interrupted, save links to visit and links visited as progress.
     
     Instance Attributes:
       - url: the given url tuple in the form of (url, base_url), where base_url is the base site to be scraped.
       - links: all the distict urls associated with the starting url.
       - to_visit: set of url tuples that are yet to be visited.
-
+      - cap: maximum number of links to be processed at a time.
+      - resume: whether resume from previous progress or not (start fresh). Default to False.
+      - save_html: whether also saving scraped html files. 
+      Warning: If mode is resume, only enable `save_html` if you are consistent with previous sessions.
+      Otherwise, it will result in mismatch of html docs and text docs.
     """
     # Private Instance Attributes:
     #   - _context: the playwright browser context used to fetch pages.
-    #   - _cap: maximum number of links to be processed at a time.
     #   - _pages: store browswer tabs that will stay oepn throgh the lifetime of SoupsMaker.
-    #   - _resume: whether resume from previous progress or not (start fresh). Default to False.
     #   - _page_lock: an asyncio lock to prevent race condition when allocating pages.
 
     starting_url: tuple[str, str] = URL, BASE_URL
     links: set[str]
     to_visit: set[tuple[str, str]]
+    cap: int = 10
+    resume: bool
+    save_html: bool
 
     _context: Optional[BrowserContext] = None
-    _cap: int = 10
     _pages: list[Page]
-    
-    _resume: bool
     _page_lock: asyncio.Lock
+    
 
-    def __init__(self, starting_url: tuple[str, str] = (URL, BASE_URL),
-                 cap: int = 10, resume: bool = False) -> None:
+    def __init__(self, starting_url: tuple[str, str] = (URL, BASE_URL), 
+                 cap: int = 10, resume: bool = False, save_html: bool = False) -> None:
+        
         self.starting_url = starting_url
-        self.soups = []
+        self.cap = cap
+        self.resume = resume
+        self.save_html = save_html
 
         self._context = None
-        self._cap = cap
         self._pages = []
-        self._resume = resume
         self._page_lock = asyncio.Lock()
 
         self._start_by_mode()  # intialize self.links and self.to_visit based on the mode 
@@ -125,7 +129,7 @@ class SoupsMaker():
         while self.to_visit:
             # Create batch of links
             batch = set()
-            while self.to_visit and len(batch) < self._cap: # stop if batch is full or to_visit is empty
+            while self.to_visit and len(batch) < self.cap: # stop if batch is full or to_visit is empty
                 # Do not create tasks if the link has been processed before
                 hold = self.to_visit.pop()
                 if hold[0] in self.links:
@@ -209,8 +213,8 @@ class SoupsMaker():
             if page is not None: # Mainly to handle the recursive call below after clickiing "proceed anyway" 
             # making sure after redirection, it does not grab a new page and breaks round robin
                 pass
-            # Create a new page if no more than self._cap pages are open
-            elif len(self._pages) < self._cap:
+            # Create a new page if no more than self.cap pages are open
+            elif len(self._pages) < self.cap:
                 page = await self.context.new_page()
                 self._pages.append(page)
             # Otherwise, reuse an existing page (round robin)
@@ -271,8 +275,7 @@ class SoupsMaker():
         print("## soup baked ##")
         return BeautifulSoup(html, "html.parser")
     
-    @staticmethod
-    def save_html_and_text(soup: BeautifulSoup) -> None:
+    def save_html_and_text(self, soup: BeautifulSoup) -> None:
         """Save prettified html to html_docs/.
         Save extracted text files to text_docs/."""
 
@@ -282,9 +285,10 @@ class SoupsMaker():
         if not os.path.exists("text_docs"):
             os.makedirs("text_docs")
 
-        file_count = len(os.listdir("html_docs"))
-        filename_html = f"html_docs/page_{file_count + 1}.html"
-        filename_text = f"text_docs/page_{file_count + 1}.txt"
+        html_count = len(os.listdir("html_docs"))
+        text_count = len(os.listdir("text_docs"))
+        filename_html = f"html_docs/page_{html_count + 1}.html"
+        filename_text = f"text_docs/page_{text_count + 1}.txt"
 
         # Extract clean text
         text = "\n".join(
@@ -294,12 +298,13 @@ class SoupsMaker():
         )
 
         # Write to html and text files
-        with open(filename_html, "w", encoding="utf-8") as f:
-            f.write(soup.prettify())
+        if self.save_html:  # only save html when enabled
+            with open(filename_html, "w", encoding="utf-8") as f:
+                f.write(soup.prettify())
+            print(f"HTML document saved as {filename_html}")
 
         with open(filename_text, 'w', encoding="utf-8") as f:
             f.write(text)
-        print(f"HTML document saved as {filename_html}")
         print(f"Text document saved as {filename_text}")
 
     
@@ -308,24 +313,37 @@ class SoupsMaker():
         Also, if in fresh mode, clear files in html_docs.
 
         Preconditions:
-          - if self._resume is True, progress files must in csv format
+          - if self.resume is True, progress files must in csv format
            and only contain urls (not the base url).
         """
         # fresh mode
-        if not self._resume:
-            self.links = set()
-            self.to_visit = {self.starting_url}
+        if not self.resume:
+            
+            # Safety check
+            confirm = input("Are you sure you want to start fresh?\n" \
+            "All progress will be erased, including extracted html/text.\n" \
+            "Type 'yes' to continue: ")
 
-            # Clear files in html_docs and text_docs
-            if os.path.exists("html_docs"):
-                for filename in os.listdir("html_docs"):
-                    file_path = os.path.join("html_docs", filename)
-                    os.remove(file_path)
-            if os.path.exists("text_docs"):
-                for filename in os.listdir("text_docs"):
-                    file_path = os.path.join("text_docs", filename)
-                    os.remove(file_path)
-            return
+            if confirm.strip().lower() != 'yes':
+                print("NOTE: Switched to resume mode.")
+                time.sleep(5)
+                self.resume = True
+
+            # Confirmed fresh mode
+            else:
+                self.links = set()
+                self.to_visit = {self.starting_url}
+
+                # Clear files in html_docs and text_docs
+                if os.path.exists("html_docs"):
+                    for filename in os.listdir("html_docs"):
+                        file_path = os.path.join("html_docs", filename)
+                        os.remove(file_path)
+                if os.path.exists("text_docs"):
+                    for filename in os.listdir("text_docs"):
+                        file_path = os.path.join("text_docs", filename)
+                        os.remove(file_path)
+                return
         
         # resume mode
         self.links = set()
@@ -370,7 +388,7 @@ class SoupsMaker():
         if not os.path.exists("progress"):
             os.makedirs("progress")
 
-        mode = 'a' if self._resume else 'w'
+        mode = 'a' if self.resume else 'w'
         with open("progress/progress_links.csv", mode, newline='') as f:
 
             data = list(self.links)
@@ -393,10 +411,11 @@ class SoupsMaker():
 
 
 async def run_soupsmaker(starting_url: tuple[str, str] = (URL, BASE_URL),
-                 cap: int = 10, resume: bool = False) -> None:
+                 cap: int = 10, resume: bool = False, save_html: bool = False) -> None:
     """Run SoupsMaker and save progress on KeyboardInterrupt.
     """
-    soupsmaker = SoupsMaker(starting_url=starting_url, cap=cap, resume=resume)
+    soupsmaker = SoupsMaker(starting_url=starting_url, cap=cap, resume=resume,
+                            save_html=save_html)
     try:
         await soupsmaker.main()
     except asyncio.CancelledError:
@@ -407,4 +426,5 @@ async def run_soupsmaker(starting_url: tuple[str, str] = (URL, BASE_URL),
 
 
 if __name__ == '__main__':
-    asyncio.run(run_soupsmaker(cap=5, resume=True, starting_url=(URL, BASE_URL)))
+    asyncio.run(run_soupsmaker(cap=8, resume=True, save_html=False, 
+                               starting_url=(URL, BASE_URL)))

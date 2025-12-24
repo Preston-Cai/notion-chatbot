@@ -32,7 +32,7 @@
 4. When saving progress on interruption, add links that are currently being visited (but are in neither self.links nor self.to_visit) back to self.to_visit, as the soupsmaker has not finished scraping those links.
 
 
-## Plans for RAG
+## Retrival-Augmented Generation (RAG)
 1. Split data with langchain splitters and create `Document` objects
 #### Plan A: Split text docs using recursive text splitter
 Advantage: it attempts to keep paragraphs intact. For example, if a paragraph (or sentence) exceeds chunk size limit, it's moved to the next chunk.
@@ -43,12 +43,21 @@ Downside: notion's html pages have too many distracting elements
 - HTML loader: take html file and generate a list of `Document` objects of (unsplitted) htmls. https://docs.langchain.com/oss/python/integrations/document_loaders/bshtml
 - HTML spliter: take html strings and generate `Document` objects of splitted html segments. https://docs.langchain.com/oss/python/integrations/splitters/split_html
 
-2. Embed with OpenAI and store with Chroma
+2. Embed with OpenAI and store `.sqlite3` with Chroma
 Vector store: 
 https://docs.langchain.com/oss/python/integrations/vectorstores/chroma
 
 3. Similarity search directly with vector store. See link in step 2.
 
+4. Implement the agent
+- Quick start: https://docs.langchain.com/oss/python/langchain/quickstart
+- Sessions memory/storage so that the messages and context are saved:
+https://docs.langchain.com/oss/python/langchain/short-term-memory
+- Configure system prompt, response schema
+- Feed retrieved similar docs to "assistant" role in messages when invoking the agent.
+
+## Packaging into product: Python CLI or REST API
+- To be completed
 
 ## Other links
 Scrapers I found online (lack certain features I need):
