@@ -1,13 +1,15 @@
 """
-IMPORTANT NOTE: this version fixed the subtle issue as described in the docstring in try6
-by writing `soup.prettify()` to the html file.
-
+This file contains:
+1. A dynamic, recursive web scraper (`SoupsMaker`);
+2. A function to run the scraper (`run_soupsmaker`);
+3. A function for a simple single page text extracter (`scrape_single_page`).
 
 Next step: 
 1. Tune sleep setting.
 """
 
 from playwright.async_api import async_playwright, BrowserContext, Page
+from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import asyncio
@@ -27,12 +29,13 @@ URL3 = "https://books.toscrape.com"
 BASE_URL3 = URL3
 
 class SoupsMaker():
-    """A class that represents the process of
-    making soups given one ingredient (the url).
+    """Represents the process of
+    "making soups" given one ingredient (the url).
+    In other words, a dynamic, recursive web scraping engine.
 
     SoupsMaker: what it does
         1. Deep crawls all subpages of the given url.
-        2. Saves html docs (if enabled) and extracted text of visited pages.
+        2. Saves html docs (if enabled) and extracted text of visited pages. Destination folders: `html_docs` and `text_docs`.
         3. Saves all visted links to csv after finished scraping all links
         4. (Handled by `run_soupsmaker`) if interrupted, save links to visit and links visited as progress.
     
@@ -423,6 +426,50 @@ async def run_soupsmaker(starting_url: tuple[str, str] = (URL, BASE_URL),
         print("Number of links added so far:\n", len(soupsmaker.links))
         soupsmaker.save_progress()  # save progress if interrupted
         raise
+
+
+def scrape_single_page(url: str) -> str:
+    """Scrape a single given url and return the text contained."""
+    with sync_playwright() as p:
+        # Launch real Chromium
+        browser = p.chromium.launch(
+            headless=False  # set True later once confirmed working
+        )
+
+        context = browser.new_context(
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/131.0.0.0 Safari/537.36"
+            )
+        )
+        print("Browser launched!")
+
+        page = context.new_page()
+
+        page.goto(url, wait_until="domcontentloaded")
+        print("page loaded.")
+
+        # Scroll to bottom and update until no more content loaded
+        previous_height = 0
+        while True:
+            time.sleep(2)
+            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            current_height = page.evaluate("document.body.scrollHeight")
+            if previous_height == current_height:
+                break
+            previous_height = current_height
+        
+        html = page.evaluate("""() => document.documentElement.outerHTML""")
+
+        browser.close()
+    
+    soup = BeautifulSoup(html, "html.parser")
+    text = "\n".join(line.strip() 
+                     for line in soup.get_text("\n").split("\n") 
+                     if line.strip())
+
+    return text
 
 
 if __name__ == '__main__':

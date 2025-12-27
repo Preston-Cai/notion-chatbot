@@ -33,6 +33,8 @@
 
 
 ## Retrival-Augmented Generation (RAG)
+### Steps
+Example implementation: https://docs.langchain.com/oss/python/langchain/rag
 1. Split data with langchain splitters and create `Document` objects
 #### Plan A: Split text docs using recursive text splitter
 Advantage: it attempts to keep paragraphs intact. For example, if a paragraph (or sentence) exceeds chunk size limit, it's moved to the next chunk.
@@ -56,12 +58,27 @@ https://docs.langchain.com/oss/python/langchain/short-term-memory
 - Configure system prompt, response schema
 - Feed retrieved similar docs to "assistant" role in messages when invoking the agent.
 
+### Issues solved / to solve
+1. Integrate tool call limit middleware: https://docs.langchain.com/oss/python/langchain/middleware/built-in#tool-call-limit
+2. Provide large overall context to the LLM (scrap key sites that introduce the org, FINCH mission, and team roles) as part of system prompt.
+3. Add agent streaming mode for live updates / debugging. For agent streaming: https://docs.langchain.com/oss/python/langchain/streaming.
+4. Prevent the agent from exploiting the tool when unnecessary (e.g. retrieve context even if the user's prompt is just 'how are you'). One idea: use a third-party LLM judge (that is not biased towards using the tool) to make decision and switch between agent with tool and agent without tool, rather than putting the tool to the agent's toolbox and let it decide on its own.
+5. Possibly provide "search on Internet" tool to the agent.
+6. Add sources for the agent: when scraping websites, add metadata such as url, and requires the agent to present the urls of the pages that they have retrieved for context.
+7. Two ways of improving retrieval in RAG: https://www.youtube.com/watch?v=smGbeghV1JE
+Idea: LLM-augmented retrieval
+- Structured the query with LLM before search
+- Restructured the text database with an LLM (e.g. to highlight key info)
+8. Add terminal display visuals (e.g. "loading...") - better user experience.
+
 ## Packaging into product: Python CLI or REST API
 - To be completed
+1. use a database to store scraped text instead.
 
 ## Other links
 Scrapers I found online (lack certain features I need):
 - RecursiveUrlLoader (not dynamic): https://docs.langchain.com/oss/python/integrations/document_loaders/url
 - Dynamic url loader (not recursive): https://docs.langchain.com/oss/python/integrations/document_loaders/recursive_url
 
-
+Enterprise semantic retriever: Amazon Kendra
+https://aws.amazon.com/kendra/features/

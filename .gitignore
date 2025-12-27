@@ -16,9 +16,9 @@ venv.bak/
 .ipynb_checkpoints
 
 # data/progress
-progress/*.csv
-html_docs/*.html
-text_docs/*.txt
+progress/
+html_docs/
+text_docs/
 
 # other temp files
 /*.html
@@ -26,3 +26,6 @@ text_docs/*.txt
 
 # database dir
 /*_db
+
+# Include key_urls
+!key_urls.json
