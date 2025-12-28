@@ -11,6 +11,7 @@ import shutil
 
 from dotenv import load_dotenv
 import os
+import time
 
 
 def load_texts_from_dir(dir_path: str) -> list[str]:
@@ -27,13 +28,13 @@ def load_texts_from_dir(dir_path: str) -> list[str]:
             texts.append(text)
     return texts
 
-def split_text(texts: list[str], chunk_size: int = 5000) -> list[Document]:
+def split_text(texts: list[str], chunk_size: int = 512) -> list[Document]:
     """Split given list of strings into langchain `Document` object.
     Chunk size is the number of characters each splitted chunk should contain.
     """
 
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=5000,
+        chunk_size=chunk_size,
         chunk_overlap=20,
         length_function=len,
         is_separator_regex=False,
@@ -60,12 +61,13 @@ def embed_and_store(docs: list[Document], fresh_store: bool = False,
 
     # Remove database if mode is fresh
     if fresh_store:
-        confirm = input("Are you sure you want to erase previous database?" \
+        confirm = input("Are you sure you want to erase previous database? " \
         "Type 'yes' to continue.")
         if confirm:
             shutil.rmtree(persist_dir)
         else:
             print("Switched to add mode. Adding new docs to database...")
+            time.sleep(5)
 
     # Vector store
     vector_store = Chroma(

@@ -2,9 +2,11 @@
 RAG Agent implementation.
 
 Next steps:
-1. Scrape key pages and provide that to either system prompt or invocation messages.
-2. Add command line visuals ("loading...").
-3. Finish scraping all pages and add them to vector store.
+1. Finish scraping all pages and add them to vector store.
+2. Add feature: decide dynamically retrieval k value and tool call limit based on necessity score
+produced by the third-party judge. Must move `create_agent` into the chat loop and create new agents
+in real time that shares the same checkpointer, since `create_agent` returns `CompiledGraphState` object,
+which cannot be naively mutated.
 """
 
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -29,7 +31,9 @@ SYSTEM_PROMPT = """
 You are a chatbot that can chat and help.
 Big picture context (background info) have been provided to you (e.g. info about our division's current mssion - FINCH).
 
-A tool is given to you to retrive context specific to FINCH and UTAT. Do NOT exploit it unless absolutely necessary. Fuck you otherwise.
+A tool is given to you to retrive context specific to FINCH and UTAT. Do NOT exploit it unless absolutely necessary.
+If the retrieval tool cannot be used because its limit is reached, provide the best possible answer
+using only the context already available. Do not leave your response empty.
 """
 
 # Define output schema
@@ -40,7 +44,7 @@ class ResponseFormat(BaseModel):
         
 
 @tool(description="retrieve context specific to Space Systems division of UTAT")
-def retrieve_context(query: str, num_docs: int = 5) -> tuple[str, list[Document]]:
+def retrieve_context(query: str, num_docs: int = 10) -> tuple[str, list[Document]]:
     """
     A function to retrieve domain-specific context. Use it **only when the user's question
     cannot be answer directly from the context already provided**. DO NOT use it for greeting, small talk,
@@ -87,12 +91,9 @@ def retrieve_context(query: str, num_docs: int = 5) -> tuple[str, list[Document]
     return text, docs
 
 
-def chat_loop(retrieve_limit: int = 3, mode: str = 'std') -> None:
+def chat_loop(retrieve_limit: int = 3) -> None:
     """Activate a chat session for the user.
     retrieve_limit is the maximum number to call the tool `retrieve_context`.
-    mode is agent progress display mode: one of {'std', 'vb'}
-      - 'std' is standard mode, only displaying final messages; 
-      - 'vb' is verbose mode, streaming all updates (including tool calls).
     """
 
     # Load api key
@@ -115,7 +116,7 @@ def chat_loop(retrieve_limit: int = 3, mode: str = 'std') -> None:
         system_prompt=SYSTEM_PROMPT,
         response_format=ToolStrategy(ResponseFormat),
         middleware=[ToolCallLimitMiddleware(    # limit tool calls
-            tool_name="retrive_context",
+            tool_name="retrieve_context",
             run_limit=retrieve_limit
         )],
         tools=[retrieve_context],
@@ -139,36 +140,41 @@ def chat_loop(retrieve_limit: int = 3, mode: str = 'std') -> None:
                     },
                     {"configurable": {"thread_id": "1"}})
             
-            # To be implemented: a third-party LLM to decide whether context retrieval is necessary
-            necessary = judge_tool_necessity(user_prompt)
+            # A third-party LLM to decide whether context retrieval is necessary
+            necessary, necessity_score = judge_tool_necessity(user_prompt)
+            print("Context retrieval necessity score: ", necessity_score)
             # If so, use the agent with tool. Otherwise, use the agent without tool.
             if necessary:
                 agent = agent_with_tool
+                print("Switched to agent with tool.")
             else:
                 agent = agent_no_tool
+                print("Switched to agent without tool.")
 
-            if mode == 'std':
-                # Invoke agent
-                result = agent.invoke(*msg)
+          
+            # Invoke agent
+            result = agent.invoke(*msg)
 
-                # Hard coded structured response
-                # print("Bot's Response -----\n", 
-                #        [entry for entry in result['messages'] 
-                #         if isinstance(entry, AIMessage)][-1].content)
+            # Structured response
+            print("----- Bot's Response -----\n", result['structured_response'].message)
+
+            # Hard-coded structured response
+            # Warning: First comment out response_format in create_agent!!
+            # print("Bot's Response -----\n", 
+            #        [entry for entry in result['messages'] 
+            #         if isinstance(entry, AIMessage)][-1].content) 
                 
-                # Structured response
-                print("----- Bot's Response -----\n", result['structured_response'].message)
-                   
-            elif mode == 'vb':
-                # verbose mode
-                for event in agent.stream(
-                    *msg,
-                    stream_mode="values",
-                ):
-                    event["messages"][-1].pretty_print()
+            # verbose streaming mode
+            # Warning: First comment out response format in create_agent!!
+            # for event in agent.stream(
+            #     *msg,
+            #     stream_mode="values",
+            # ):
+            #     event["messages"][-1].pretty_print()
+
 
     except KeyboardInterrupt:
         print("\n#### Conversation ended ####")
 
 if __name__ == '__main__':
-    chat_loop(mode='vb', retrieve_limit=2)
+    chat_loop(retrieve_limit=2)

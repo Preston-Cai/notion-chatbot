@@ -7,12 +7,17 @@ from big_context import read_big_context
 
 
 class OutputSchema(BaseModel):
-    """The output schema of the third-party judge."""
-    necessity: bool
-
-def judge_tool_necessity(query: str) -> bool:
+    """The output schema of the third-party judge.
+    
+    Representation Invariants:
+      - 0 <= self.necessity_score <= 100
     """
-    Given a query, judge whether context retrieval is necessary.
+    necessity: bool
+    necessity_score: int
+
+def judge_tool_necessity(query: str) -> tuple[bool, int]:
+    """
+    Given a query, judge whether context retrieval is necessary and how necessary it is.
     """
     load_dotenv()
     key = os.environ.get("OPENAI_API_KEY")
@@ -29,7 +34,8 @@ def judge_tool_necessity(query: str) -> bool:
             "system",
             "You are a helper assistant for an RAG agent. You job is to judge, "
             "given the user's prompt and the context that the agent already possesses, "
-            "whether it's necessary to retrieve the organization's notion pages for generation."
+            "whether it's necessary and how necessary it is to retrieve specific information from the Space Systems - UTAT "
+            "notion workplace for generation."
         ),
         (
             "system",
@@ -42,9 +48,10 @@ def judge_tool_necessity(query: str) -> bool:
         input=msg
     )
 
-    print(result.necessity)
+    print("Necessary?", result.necessity)
+    print("How necessary?", result.necessity_score)
 
-    return result.necessity
+    return result.necessity, result.necessity_score
 
 
 if __name__ == '__main__':
