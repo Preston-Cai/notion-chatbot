@@ -49,6 +49,7 @@ humanfriendly==10.0
 idna==3.11
 importlib_metadata==8.7.1
 importlib_resources==6.5.2
+iniconfig==2.3.0
 jiter==0.12.0
 joblib==1.5.3
 jsonpatch==1.33
@@ -100,6 +101,7 @@ packaging==25.0
 patchright==1.56.0
 platformdirs==4.5.1
 playwright==1.56.0
+pluggy==1.6.0
 posthog==5.4.0
 propcache==0.4.1
 protobuf==6.33.2
@@ -118,6 +120,7 @@ PyPika==0.48.9
 pyproject_hooks==1.2.0
 pyreadline3==3.5.4
 PySocks==1.7.1
+pytest==9.0.2
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.1
 python-iso639==2025.11.16

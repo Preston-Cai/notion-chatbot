@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache
 
 # Environments
 .env
@@ -15,17 +16,13 @@ venv.bak/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# data/progress
-progress/
-html_docs/
-text_docs/
+# large data
+data/scraping/html_docs
+data/scraping/text_docs
+data/scraping/json_docs
+data/previous_runs
 
 # other temp files
 /*.html
 /webtext.txt
-
-# database dir
-/*_db
-
-# Include key_urls
-!key_urls.json
+temp/
