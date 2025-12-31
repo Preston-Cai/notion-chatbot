@@ -44,13 +44,6 @@ def chat_stream(message, history) -> Generator[str, None, None]:
 def chat_full_visuals(message, history) -> ChatMessage:
     """A chat function for gradio that displays the chatbot's 
     thinking process as well as final message streaming."""
-    
-    
-    
-    
-    
-    
-    
 
 demo = gr.ChatInterface(
         fn=chat_stream,
@@ -62,4 +55,3 @@ demo = gr.ChatInterface(
         )
 
 demo.launch()
-    

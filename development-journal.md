@@ -97,17 +97,17 @@ Display intermediate thoughts and tool usage: https://www.gradio.app/guides/agen
 ## Next Steps
 ### For RAG
 #### Optional Improvements
-1. (Optional) Add feature: decide dynamically retrieval k value and tool call limit based on necessity score produced by the third-party judge. Must move `create_agent` into the chat loop and create new agents in real time that shares the same checkpointer, since `create_agent` returns `CompiledGraphState` object, which cannot be naively mutated.
-2. (Optional) Two ways of improving retrieval in RAG: https://www.youtube.com/watch?v=smGbeghV1JE.
+1. Add feature: decide dynamically retrieval k value and tool call limit based on necessity score produced by the third-party judge. Must move `create_agent` into the chat loop and create new agents in real time that shares the same checkpointer, since `create_agent` returns `CompiledGraphState` object, which cannot be naively mutated.
+2. Two ways of improving retrieval in RAG: https://www.youtube.com/watch?v=smGbeghV1JE.
 Idea: LLM-augmented retrieval
 - Structured the query with LLM before search
 - Restructured the text database with an LLM (e.g. to highlight key info)
-3. (Optional) Prevent sequential context retrieval overlapping. 
+3. Prevent sequential context retrieval overlapping. 
 - Idea: Filter with document ids with native Chroma API: https://cookbook.chromadb.dev/core/filters.
 - Limitation: May need to rewrite the entire embed-store-retrieve pipeline using native Chroma API rather than LangChain Chroma: https://www.datacamp.com/tutorial/chromadb-tutorial-step-by-step-guide
 - Attempted using native Chroma in `retrieve_context`, but it cannot recognize the local langchain_chroma persistent database. This shows that we indeed may need to rewrite the entire pipeline using native Chroma if we really want to add this feature.
 - Thus, adding this feature might not be worth the time and effort. It doesn't significantly improve the functionality of the chatbot at the end of the day.
-4. (Optional) Add terminal display visuals (e.g. "loading...") - better developer experience.
+4. Add terminal display visuals (e.g. "loading...") - better developer experience.
 
 ## Other Links
 Scrapers I found online (lack certain features I need):
