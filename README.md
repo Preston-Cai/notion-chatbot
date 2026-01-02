@@ -29,7 +29,7 @@ pip install -r requirements.txt
 ```
 If failed, try loosening the dependencies.
 
-### Scraping
+### 1. Scraping
 To scrap an URL recursively (dynamic JS supported):
 1. In `src/scraping/scrape.py`, scroll down to the main block. Change the parameters.
 2. To run: 
@@ -39,7 +39,7 @@ python -m src.scraping.scrape
 3. For a URL with around 1000 children links, for `cap=8` it should take around 30 minutes.
 4. Find the data in `data/scraping`.
 
-### Chunking/Embedding/Vector Storing
+### 2. Chunking/Embedding/Vector Storing
 Chunk, embed, and vector store the content in `data/scraping` that was generated previously.
 #### For `data/scraping/json_docs`
 Recommended approach, as generated JSON docs contain the sources RAG agent needs to generate the correct response format.
@@ -54,7 +54,7 @@ To run:
 python -m src.processing.embed_no_source
 ```
 
-### Launch RAG Chatbot
+### 3. Launching RAG Chatbot
 To simulate a terminal chat loop, run in terminal:
 ```
 python -m src.rag.rag_chat
