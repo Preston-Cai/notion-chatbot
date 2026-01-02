@@ -1,5 +1,4 @@
 # Notion Chatbot
-Running demo app on Hugging Face: [notion-chatbot](https://huggingface.co/spaces/preston-cai/notion-chatbot)
 - Deep-crawling dynamic JS-support web scraper to find all subpages of a given URL: `src/scraping/scrape.py`.
 - Content chunking, NLP embedding, and vector storing pipeline: `src/processing/`
 - An RAG chatbot that can answer questions based on context retrieved from a chroma database: `src/rag/rag_chat.py`.
@@ -18,7 +17,7 @@ The project consists of three stages: scraping all Notion subpages of a URL recu
 3. RAG Agent Flow: LangChain, LangGraph, OpenAI API
 4. Demo App: Gradio, Hugging Face
 
-## Quick Start
+## Quick Start: make your own RAG chatbot
 In your desired directory, clone the repo:
 ```
 git clone https://github.com/Preston-Cai/notion-chatbot
@@ -63,7 +62,7 @@ To open gradio demo app in browser, run in terminal:
 ```
 python -m gradio_app.app
 ```
-To see the running demo, visit the link provided at the beginning of this README file.
+Disabled demo due to privacy concern: [notion-chatbot](https://huggingface.co/spaces/preston-cai/notion-chatbot)
 
 ## Project Tree
 ```
@@ -71,11 +70,6 @@ To see the running demo, visit the link provided at the beginning of this README
 ├─ .gitattributes
 ├─ .gitignore
 ├─ README.md
-├─ data
-│  ├─ chroma_langchain_db/      # vector embeddings storage
-│  ├─ context/      # big-picture context for the LLM
-│  └─ scraping
-│     └─ progress/      # scraping progress saved as csv files
 ├─ development-journal.md
 ├─ experimental_legacy/     # experimental/exploratory files
 ├─ experimental_requirements.txt    # requirements for experimental files

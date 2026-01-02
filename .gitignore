@@ -17,16 +17,13 @@ tempenv/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# large data
-data/scraping/html_docs
-data/scraping/text_docs
-data/scraping/json_docs
-data/previous_runs
+# large/sensitive data
+data/
+*.csv
 
 # Gradio
 .gradio/
 
 # other temp files
 /*.html
-/webtext.txt
 temp/
