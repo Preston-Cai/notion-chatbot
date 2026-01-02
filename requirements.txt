@@ -1,0 +1,14 @@
+beautifulsoup4==4.14.3
+chromadb==1.4.0
+gradio==6.2.0
+langchain==1.2.0
+langchain_chroma==1.1.0
+langchain_community==0.4.1
+langchain_core==1.2.5
+langchain_openai==1.1.6
+langchain_text_splitters==1.1.0
+langgraph==1.0.5
+playwright==1.56.0
+pydantic==2.12.5
+pytest==9.0.2
+python-dotenv==1.2.1

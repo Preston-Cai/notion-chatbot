@@ -19,12 +19,15 @@ def process_message(response: ResponseFormat) -> str:
     """Parse a structured response into a readable message."""
     parts = [
         response.message,
-        '\n' + '-' * 35 + " Sources " + '-' * 35,
-        str(response.sources),
     ]
+    # Properly display links
+    if response.sources is not None:
+        parts.append('\n' + '-' * 50 + " Sources " + '-' * 50)
+        parts.extend(response.sources)
     result = '\n'.join(parts)
     print(result)
     return result
+
 
 def chat_response(message, history) -> str:
     """Chat funciton for Gradio's chat interface."""
@@ -51,7 +54,12 @@ demo = gr.ChatInterface(
         textbox=gr.Textbox(placeholder="Ask Me Anything, or Chat", container=False, scale=7),
         title="UTAT Space Systems Notion Chatbot",
         description="Ask questions regarding UTAT Space Systems, or just chat!",
-        examples=["Hello, how are you?", "data processing team notes from October 2025", "Current discussion about on-orbit dark frame calibration?", "Optics meeting schedule?"],
+        examples=[
+            "What do you do?",
+            "Optics meeting schedule?",
+            "Options that we're considering for dark-frame acquisition of FINCH?"
+            # "Current discussion on on-orbit dark frame calibration?",
+            ],
         )
 
 demo.launch()

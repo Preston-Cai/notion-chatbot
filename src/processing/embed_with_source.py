@@ -70,7 +70,7 @@ def embed_and_store(docs: list[Document], fresh_store: bool = False) -> None:
     key = os.environ.get("OPENAI_API_KEY")
     # Create embeddings
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=key)
-    print("embeddings created")
+    print("Embeddings Created")
 
     # Remove database if mode is fresh
     if fresh_store:
@@ -89,9 +89,16 @@ def embed_and_store(docs: list[Document], fresh_store: bool = False) -> None:
         persist_directory=DB_DIR,
     )
 
-    # Add documents to vector store (embedded automatically when added)
     uuids = [str(uuid4()) for _ in range(len(docs))]
-    vector_store.add_documents(documents=docs, ids=uuids)
+    batch_size = 5461    # max batch size for chromadb to embed and store at once
+    
+    docs_batches = [docs[i:i+batch_size] for i in range(0, len(uuids), batch_size)]
+    uuids_batches = [uuids[i:i+batch_size] for i in range(0, len(uuids), batch_size)]
+    
+    # Add documents batch by batch to vector store (embedded automatically when added)
+    for i in range(len(uuids_batches)):
+        docs_batch, uuids_batch = docs_batches[i], uuids_batches[i]
+        vector_store.add_documents(documents=docs_batch, ids=uuids_batch)
     
     print("Documents successfully embedded and added to vector store.")
 

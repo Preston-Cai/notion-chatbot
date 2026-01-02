@@ -12,6 +12,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+tempenv/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -21,6 +22,9 @@ data/scraping/html_docs
 data/scraping/text_docs
 data/scraping/json_docs
 data/previous_runs
+
+# Gradio
+.gradio/
 
 # other temp files
 /*.html

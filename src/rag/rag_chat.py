@@ -67,7 +67,7 @@ class RAGChat:
     
     @staticmethod
     @tool(description="retrieve context specific to Space Systems division of UTAT")
-    def _retrieve_context(query: str, num_docs: int = 10) -> tuple[str, list[Document]]:
+    def _retrieve_context(query: str, num_docs: int = 7) -> tuple[str, list[Document]]:
         """
         A function to retrieve domain-specific context. Use it **only when the user's question
         cannot be answer directly from the context already provided**. DO NOT use it for greeting, small talk,
@@ -77,11 +77,11 @@ class RAGChat:
             query: Search terms to look for
             num_docs: Maximum number of results to retrieve
         """
-        # private docstring (the agent doesn't see)
+        # Private docstring (the agent doesn't see)
         # Embed a query, similarity search, and retrieve relevant docs (num_docs many). Parse docs into string. 
         # Return a tuple: a list of docs in langchain's doc object format, and the serialized string.
         
-        print("Tool called: _retrieve_context")
+        print("Tool called: _retrieve_context; called value: k =", num_docs)
 
         load_dotenv()
         key = os.environ.get("OPENAI_API_KEY")
@@ -108,9 +108,7 @@ class RAGChat:
             for doc in docs
         )
         
-        # For debugging/development only
-        # print("First document: ", docs[0])
-        # print("Retrieve_context: ", text)
+        print("Total length of retrieved text:", len(text))
 
         return text, docs
     
@@ -170,16 +168,19 @@ class RAGChat:
                         },
                         {"configurable": {"thread_id": "1"}})
                 
-                # A third-party LLM to decide whether context retrieval is necessary
-                necessary, necessity_score = judge_tool_necessity(user_prompt, self._check_pointer)
-                print("Context retrieval necessity score:", necessity_score)
-                # If so, use the agent with tool. Otherwise, use the agent without tool.
-                if necessary:
-                    agent = self._compiled_agents[0]
-                    print("Switched to agent with tool.")
-                else:
-                    agent = self._compiled_agents[1]
-                    print("Switched to agent without tool.")
+                # # A third-party LLM to decide whether context retrieval is necessary
+                # necessary, necessity_score = judge_tool_necessity(user_prompt, self._check_pointer)
+                # print("Context retrieval necessity score:", necessity_score)
+                # # If so, use the agent with tool. Otherwise, use the agent without tool.
+                # if necessary:
+                #     agent = self._compiled_agents[0]
+                #     print("Switched to agent with tool.")
+                # else:
+                #     agent = self._compiled_agents[1]
+                #     print("Switched to agent without tool.")
+                
+                print("Temporarily diabled third-party judges. Default to agent with tool.")
+                agent = self._compiled_agents[0]
 
                 if not debug:
                     # Invoke agent
@@ -214,17 +215,20 @@ class RAGChat:
                         },
                         {"configurable": {"thread_id": "1"}})
                 
-        # A third-party LLM to decide whether context retrieval is necessary
-        necessary, necessity_score = judge_tool_necessity(prompt, self._check_pointer)
-        print("Context retrieval necessity score:", necessity_score)
-        # If so, use the agent with tool. Otherwise, use the agent without tool.
-        if necessary:
-            agent = self._compiled_agents[0]
-            print("Switched to agent with tool.")
-        else:
-            agent = self._compiled_agents[1]
-            print("Switched to agent without tool.")
+        # # A third-party LLM to decide whether context retrieval is necessary
+        # necessary, necessity_score = judge_tool_necessity(prompt, self._check_pointer)
+        # print("Context retrieval necessity score:", necessity_score)
+        # # If so, use the agent with tool. Otherwise, use the agent without tool.
+        # if necessary:
+        #     agent = self._compiled_agents[0]
+        #     print("Switched to agent with tool.")
+        # else:
+        #     agent = self._compiled_agents[1]
+        #     print("Switched to agent without tool.")
 
+        print("Temporarily diabled third-party judges. Default to agent with tool.")
+        agent = self._compiled_agents[0]
+        
         # Invoke agent
         result = agent.invoke(*msg)
         
@@ -234,7 +238,7 @@ if __name__ == '__main__':
     chatbot = RAGChat(retrieve_limit=2)
     chatbot._instantiate_agents(model_name="gpt-4o")
     
-    chatbot.simulate_chat_loop(debug=True)
+    chatbot.simulate_chat_loop(debug=False)
     
     # response = chatbot.get_response("Hello")
     # print(response.message)

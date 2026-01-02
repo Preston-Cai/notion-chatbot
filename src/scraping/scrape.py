@@ -318,7 +318,7 @@ class SoupsMaker():
                 one_line_text = text.replace('\n', ' ')
                 data = {"text": one_line_text, "source": url}
                 json.dump(data, f, indent=4)
-            print(f"Json file saved as {filename_json}")
+            print(f"JSON file saved as {filename_json}")
 
     
     def _start_by_mode(self) -> None:
@@ -492,5 +492,5 @@ def scrape_single_page(url: str) -> str:
 
 
 if __name__ == '__main__':
-    asyncio.run(run_soupsmaker(cap=8, resume=True, save_html=False, save_text=False, 
+    asyncio.run(run_soupsmaker(cap=8, resume=False, save_html=False, save_text=False, 
                                save_json=True, starting_url=(URL, BASE_URL)))
