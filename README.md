@@ -36,7 +36,7 @@ To scrap an URL recursively (dynamic JS supported):
 ```
 python -m src.scraping.scrape
 ```
-3. For a URL with around 1000 children links, for `cap=8` it should take around 20-30 minutes.
+3. For a URL with around 1000 children links, for `cap=8` it should take around 30 minutes.
 4. Find the data in `data/scraping`.
 
 ### Chunking/Embedding/Vector Storing
