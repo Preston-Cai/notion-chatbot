@@ -27,7 +27,7 @@ Install dependencies:
 ```
 pip install -r requirements.txt
 ```
-If failed, try loosen the dependencies.
+If failed, try loosening the dependencies.
 
 ### Scraping
 To scrap an URL recursively (dynamic JS supported):
