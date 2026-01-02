@@ -86,6 +86,11 @@ chunk data: {'thread_tool_call_count': {'_retrieve_context': 1}, 'run_tool_call_
 ```
 chromadb.errors.InternalError: ValueError: Batch size of 10328 is greater than max batch size of 5461 
 ```
+11. **IMPORTANT**: Manage message history dynamically: https://docs.langchain.com/oss/python/langchain/short-term-memory. 
+- This act has two distinct goals: One is to ensure the request doesn't exceed gpt-4o's rate limit when the conversation grows longer (a bigger issue for me right now since my gpt-4o's rate limit is only 30,000 tpm), second is to ensure the request doesn't exceed the model's context window. Rate limit vs. context window are two different concepts!
+- Best solution found: use LangChain's built-in `SummarizationMiddleware`: [LangChain Reference](https://reference.langchain.com/python/langchain/middleware/#langchain.agents.middleware.SummarizationMiddleware)
+- Why is this better than implementing custom `trim_messages` or `delete_messages` middleware? This built-in feature ensures AI/Tool message pairs remain together and automatically avoids causing the message history to be invalid to the LLM provider.
+12. Custom a middleware to log token sizes.
 
 ## Packaging into Product: Quick demo
 ### Short-term demo
@@ -117,7 +122,9 @@ Display intermediate thoughts and tool usage: https://www.gradio.app/guides/agen
 2. Command line interface for scraping, embedding, and launching agent.
 3. Modern web app development: dynamically fetching changes from Notion page, multi-user support & session managemenet, persistent storage & databases, asynchronous backend processing, scalable architecture.
 
-### For RAG (Optional Improvements)
+### For RAG
+
+#### Optional Improvements
 1. (No longer necessary since the third-party judge has been depracated) Add feature: decide dynamically retrieval k value and tool call limit based on necessity score produced by the third-party judge. Must move `create_agent` into the chat loop and create new agents in real time that shares the same checkpointer, since `create_agent` returns `CompiledGraphState` object, which cannot be naively mutated.
 2. Two ways of improving retrieval in RAG: https://www.youtube.com/watch?v=smGbeghV1JE.
 Idea: LLM-augmented retrieval

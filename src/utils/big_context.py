@@ -31,7 +31,7 @@ def read_big_context() -> str:
 
     with open(BIG_CONTEXT_PATH, "r", encoding="utf-8") as f:
         context = f.read()
-        print("Big-picture context total length:", len(context))
+        print("Total number of characters in big-picture context:", len(context))
         return context
 
 if __name__ == '__main__':

@@ -1,19 +1,18 @@
 """
-RAG Agent implementation.
+Old version of RAG Agent implementation.
 """
 
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.documents import Document
 from langchain_chroma import Chroma
 
-from langchain.agents import create_agent, AgentState
-from langchain.agents.middleware import ToolCallLimitMiddleware, after_model, SummarizationMiddleware
+from langchain.agents import create_agent
+from langchain.agents.middleware import ToolCallLimitMiddleware
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.state import CompiledStateGraph
 from langchain.agents.structured_output import ToolStrategy
 from langchain.tools import tool
-from langchain.messages import AIMessage, RemoveMessage, ToolMessage
-from langgraph.runtime import Runtime
+from langchain.messages import AIMessage
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
@@ -25,17 +24,15 @@ from src.utils.third_party_judges import judge_tool_necessity
 from src.file_config import DB_DIR
 
 # Edit system prompt here
-SYSTEM_PROMPT = f"""
+SYSTEM_PROMPT = """
 You are a chatbot that can chat and help.
+Big picture context (background info) have been provided to you (e.g. info about our division's current mssion - FINCH).
 
-A tool might be available (or maybe not) to retrive context specific to FINCH and UTAT. Do NOT exploit it.
+A tool might be available (or maybe not) to retrive context specific to FINCH and UTAT. Do NOT exploit it unless absolutely necessary.
 If the retrieval tool cannot be used because its limit is reached, stop calling the tool,
 provide the best possible answer using only the context already available.
 
 You can choose to provide URL sources in your answer or leave sources field as None.
-
-Here is the big-picture context (background info, e.g. info about our division's current mssion - FINCH): 
-{read_big_context()}
 """
 
 # Define output schema
@@ -68,26 +65,6 @@ class RAGChat:
         self._compiled_agents = []
         self._check_pointer = InMemorySaver()
     
-    @staticmethod
-    @after_model
-    def _log_history(state: AgentState, runtime: Runtime) -> dict | None:
-        """Log two pieces of info from the graph state:
-          - current message history statistics, and
-          - the last 4 LLM API calls input tokens
-          
-        This helps monitor summarization middleware behavior and request sizes.
-        """
-        print("middleware used: _log_messages.")
-        messages = state["messages"]
-        
-        print("------ Message History Stats ------")
-        print("Number of messages:", len(messages))
-        # print("Msg types:", [type(msg) for msg in messages])
-        
-        print("Last 5 LLM API calls input tokens:", 
-              [AI_msg.usage_metadata.get("input_tokens") for AI_msg in messages 
-               if isinstance(AI_msg, AIMessage)][-5:])
-   
     @staticmethod
     @tool(description="retrieve context specific to Space Systems division of UTAT")
     def _retrieve_context(query: str, num_docs: int = 7) -> tuple[str, list[Document]]:
@@ -151,53 +128,29 @@ class RAGChat:
         model = ChatOpenAI(
             model=model_name,
             api_key=key
-        )
-        
-        # Middleware: summarize old messages
-        summarizer = SummarizationMiddleware(
-            model="gpt-4o",
-            trigger=[
-                ("tokens", 8000),  # safe for my gpt-4o rate limit: 30,000 tpm
-                ("fraction", 0.8)  # 80% of context window
-            ],
-            keep=("tokens", 500),
-        )
-        
-        # Middleware: limit tool calls
-        tool_call_limiter = ToolCallLimitMiddleware(
-            tool_name="_retrieve_context",
-            run_limit=self.retrieve_limit,
-        )
+            )
 
+        # Create two agents, one with the tool, the other with no tool, both sharing the same memory
         agent_with_tool = create_agent(
             model=model,
             checkpointer=self._check_pointer,
             system_prompt=SYSTEM_PROMPT,
             response_format=ToolStrategy(ResponseFormat),
-            middleware=[
-                tool_call_limiter,
-                summarizer,
-                self._log_history  # See messsage history and input tokens
-            ],
+            middleware=[ToolCallLimitMiddleware(    # limit tool calls
+                tool_name="_retrieve_context",
+                run_limit=self.retrieve_limit
+            )],
             tools=[self._retrieve_context],
         )
 
-        # agent_no_tool = create_agent(
-        #     model=model,
-        #     checkpointer=self._check_pointer,
-        #     system_prompt=SYSTEM_PROMPT,
-        #     response_format=ToolStrategy(ResponseFormat),
-        #     middleware=[
-        #         # self._delete_old_messages,  # delete early messages
-        #         summarizer,     # Summarize old messages
-        #         self._log_history  # See current messsage history
+        agent_no_tool = create_agent(
+            model=model,
+            checkpointer=self._check_pointer,
+            system_prompt=SYSTEM_PROMPT,
+            response_format=ToolStrategy(ResponseFormat),
+        )
 
-        #     ],
-        # )
-
-        self._compiled_agents.extend([agent_with_tool,
-                                    #   agent_no_tool,
-                                      ])
+        self._compiled_agents.extend([agent_with_tool, agent_no_tool])
 
     def simulate_chat_loop(self, debug: bool = False) -> None:
         """Simulate a chat session for the user.
@@ -209,29 +162,35 @@ class RAGChat:
                 # Ask for user input
                 user_prompt = input("---> Enter your prompt: ")
                 msg = ({"messages": [
+                                {"role": "system", "content": f"Big picture context: {read_big_context()}"},
                                 {"role": "user", "content": user_prompt},
                             ],
                         },
                         {"configurable": {"thread_id": "1"}})
                 
-                print("User message:", user_prompt)
+                # # A third-party LLM to decide whether context retrieval is necessary
+                # necessary, necessity_score = judge_tool_necessity(user_prompt, self._check_pointer)
+                # print("Context retrieval necessity score:", necessity_score)
+                # # If so, use the agent with tool. Otherwise, use the agent without tool.
+                # if necessary:
+                #     agent = self._compiled_agents[0]
+                #     print("Switched to agent with tool.")
+                # else:
+                #     agent = self._compiled_agents[1]
+                #     print("Switched to agent without tool.")
                 
-                print("Note: Third-party judges disabled. Default to agent with tool.")
+                print("Temporarily diabled third-party judges. Default to agent with tool.")
                 agent = self._compiled_agents[0]
 
                 if not debug:
                     # Invoke agent
-                    response = agent.invoke(*msg).get("structured_response")
+                    result = agent.invoke(*msg)
                     
-                    parts = [
-                        response.message,
-                    ]
-                    # Properly print links
-                    if response.sources is not None:
-                        parts.append('\n' + '-' * 50 + " Sources " + '-' * 50)
-                        parts.extend(response.sources)
-                    result = '\n'.join(parts)
-                    print(result)
+                    # Structured response
+                    print('-' * 30 + " Bot's Response " + '-' * 30 + "----\n", 
+                        result['structured_response'].message)
+                    print('-' * 30 + " Sources " + '-' * 30 + "----\n", 
+                        result['structured_response'].sources)
                     
                 # verbose streaming mode (for debugging)
                 else:
@@ -250,12 +209,11 @@ class RAGChat:
     def get_response(self, prompt: str) -> ResponseFormat:
         """Get bot's structured response given a user prompt."""
         msg = ({"messages": [
+                                {"role": "system", "content": f"Big picture context: {read_big_context()}"},
                                 {"role": "user", "content": prompt},
                             ],
                         },
                         {"configurable": {"thread_id": "1"}})
-        
-        print("User message:", prompt)
                 
         # # A third-party LLM to decide whether context retrieval is necessary
         # necessary, necessity_score = judge_tool_necessity(prompt, self._check_pointer)
@@ -268,13 +226,13 @@ class RAGChat:
         #     agent = self._compiled_agents[1]
         #     print("Switched to agent without tool.")
 
-        print("Note: Third-party judges disabled. Default to agent with tool.")
+        print("Temporarily diabled third-party judges. Default to agent with tool.")
         agent = self._compiled_agents[0]
         
         # Invoke agent
-        response = agent.invoke(*msg).get("structured_response")
+        result = agent.invoke(*msg)
         
-        return response
+        return result.get("structured_response")
 
 if __name__ == '__main__':
     chatbot = RAGChat(retrieve_limit=2)

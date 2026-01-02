@@ -12,7 +12,7 @@ from src.rag.rag_chat import RAGChat, ResponseFormat
 import time
 from typing import Generator
 
-chatbot = RAGChat(retrieve_limit=3)
+chatbot = RAGChat(retrieve_limit=2)
 chatbot._instantiate_agents("gpt-4o")
 
 def process_message(response: ResponseFormat) -> str:

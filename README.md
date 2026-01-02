@@ -28,6 +28,13 @@ pip install -r requirements.txt
 ```
 If failed, try loosening the dependencies.
 
+### 0. Config
+Since this project uses OpenAI API for embedding and LLM inference, it does not support other API (for now).\
+To config your OpenAI API key, run the following commands in your project root:
+```
+echo OPENAI_API_KEY = '#put your api key here in this pair of quotes' > .env
+```
+
 ### 1. Scraping
 To scrap an URL recursively (dynamic JS supported):
 1. In `src/scraping/scrape.py`, scroll down to the main block. Change the parameters.
@@ -54,6 +61,10 @@ python -m src.processing.embed_no_source
 ```
 
 ### 3. Launching RAG Chatbot
+To config the context and prompt for your chatbot:
+1. Open up src/rag/rag_chat.py and edit SYSTEM_PROMPT and the interface (docstring and decorator description) of the _retrieve_context tool with the @tool decorator.
+2. Create a file `data/context/big_context.json` and enter your big-picture context for your chatbot. Ideally the content should be in JSON dict format, but the app won't break if it isn't.
+
 To simulate a terminal chat loop, run in terminal:
 ```
 python -m src.rag.rag_chat
@@ -62,7 +73,8 @@ To open gradio demo app in browser, run in terminal:
 ```
 python -m gradio_app.app
 ```
-Disabled demo due to privacy concern: [notion-chatbot](https://huggingface.co/spaces/preston-cai/notion-chatbot)
+
+This demo has been made private due to privacy concern: [notion-chatbot](https://huggingface.co/spaces/preston-cai/notion-chatbot)
 
 ## Project Tree
 ```

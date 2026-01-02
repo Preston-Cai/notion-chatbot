@@ -70,7 +70,7 @@ def embed_and_store(docs: list[Document], fresh_store: bool = False) -> None:
     key = os.environ.get("OPENAI_API_KEY")
     # Create embeddings
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=key)
-    print("Embeddings Created")
+    print("Embeddings Function Created")
 
     # Remove database if mode is fresh
     if fresh_store:
