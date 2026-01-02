@@ -35,6 +35,7 @@ def chat_response(message, history) -> str:
     result = process_message(response)
     return result
 
+
 def chat_stream(message, history) -> Generator[str, None, None]:
     """A chat funciton with streaming visuals for Gradio's chat interface."""
     response = chatbot.get_response(message)
@@ -43,10 +44,7 @@ def chat_stream(message, history) -> Generator[str, None, None]:
         if result[i] not in {'\n', ' '}:
             time.sleep(0.01)
         yield result[:i+1]
-        
-def chat_full_visuals(message, history) -> ChatMessage:
-    """A chat function for gradio that displays the chatbot's 
-    thinking process as well as final message streaming."""
+
 
 demo = gr.ChatInterface(
         fn=chat_stream,

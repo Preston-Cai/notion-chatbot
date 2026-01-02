@@ -65,4 +65,29 @@ python -m gradio_app.app
 ```
 To see the running demo, visit the link provided at the beginning of this README file.
 
-
+## Project Tree
+```
+📦 
+├─ .gitattributes
+├─ .gitignore
+├─ README.md
+├─ data
+│  ├─ chroma_langchain_db/      # vector embeddings storage
+│  ├─ context/      # big-picture context for the LLM
+│  └─ scraping
+│     └─ progress/      # scraping progress saved as csv files
+├─ development-journal.md
+├─ experimental_legacy/     # experimental/exploratory files
+├─ experimental_requirements.txt    # requirements for experimental files
+├─ gradio_app
+│  └─ app.py
+├─ requirements.txt
+└─ src
+   ├─ __init__.py
+   ├─ file_config.py
+   ├─ processing/
+   ├─ rag/
+   ├─ scraping/
+   ├─ tests/
+   └─ utils/
+```
