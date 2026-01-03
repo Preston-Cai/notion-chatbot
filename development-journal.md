@@ -90,6 +90,7 @@ chromadb.errors.InternalError: ValueError: Batch size of 10328 is greater than m
 - This act has two distinct goals: One is to ensure the request doesn't exceed gpt-4o's rate limit when the conversation grows longer (a bigger issue for me right now since my gpt-4o's rate limit is only 30,000 tpm), second is to ensure the request doesn't exceed the model's context window. Rate limit vs. context window are two different concepts!
 - Best solution found: use LangChain's built-in `SummarizationMiddleware`: [LangChain Reference](https://reference.langchain.com/python/langchain/middleware/#langchain.agents.middleware.SummarizationMiddleware)
 - Why is this better than implementing custom `trim_messages` or `delete_messages` middleware? This built-in feature ensures AI/Tool message pairs remain together and automatically avoids causing the message history to be invalid to the LLM provider.
+12. Moving function call `read_big_context()` from invocation message into SYSTEM_PROMPT so it does not need to call it every interation cycle.
 12. Custom a middleware to log token sizes.
 13. LangChain's summarization middleware creates a new problem: After summarization is triggered, it summrizes old messages and wrap them in type `HumanMessage`, which is followed by the real user's question, also wrapped in `HumanMessage`. The LLM often misinterprets the first part thinking it's the user's question, giving responses that are duplicates of a previous response.
 - I logged the messages and see the exact format of the summary. Here is how it looks like:
