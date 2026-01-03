@@ -103,3 +103,10 @@ python -m gradio_app.app
    ├─ tests/
    └─ utils/
 ```
+
+## General Next Steps / Possible Expansions
+1. Isolate the dynamic recursive scraper and make it generic and pip installable.
+2. Command line interface for scraping, embedding, and launching agent.
+3. Modern web app development: dynamically fetching changes from Notion page, multi-user support & session managemenet, persistent storage & databases, asynchronous backend processing, scalable architecture.
+
+For more details, view the "Next Steps" section in [Development Journal](development-journal.md).
