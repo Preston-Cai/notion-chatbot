@@ -11,11 +11,17 @@ As an organization grows large, the huge Notion workplace can be incredibly diff
 
 The project consists of three stages: scraping all Notion subpages of a URL recursively, chunking documents and creating/storing NLP vector embeddings, and orchestrating retrieval-augmented agent.
 
-## Major Libraries/Frameworks Used
-1. Dynamic Recursive Web Scraping: Playwright, Beautiful Soup
-2. Embedding/Vector Storing: LangChain, OpenAI API, Chroma
-3. RAG Agent Flow: LangChain, LangGraph, OpenAI API
-4. Demo App: Gradio, Hugging Face
+## Demo
+This demo has been made private due to privacy concern: [notion-chatbot](https://huggingface.co/spaces/preston-cai/notion-chatbot)
+
+## Primary Libraries & Frameworks
+
+**Python Version**: 3.13.9
+
+- **Dynamic Recursive Web Scraping**: Playwright, BeautifulSoup  
+- **Embedding & Vector Storage**: LangChain, OpenAI API, Chroma  
+- **RAG Agent Workflow**: LangChain, LangGraph, OpenAI API  
+- **Demo Application**: Gradio, Hugging Face
 
 ## Quick Start: make your own RAG chatbot
 In your desired directory, clone the repo:
@@ -29,7 +35,7 @@ pip install -r requirements.txt
 If failed, try loosening the dependencies.
 
 ### 0. Config
-Since this project uses OpenAI API for embedding and LLM inference, it does not support other API (for now).\
+Since this project uses OpenAI API for embedding and LLM inference, it does not support other API (as of now).\
 To config your OpenAI API key, run the following commands in your project root:
 ```
 echo OPENAI_API_KEY = '#put your api key here in this pair of quotes' > .env
@@ -37,8 +43,8 @@ echo OPENAI_API_KEY = '#put your api key here in this pair of quotes' > .env
 
 ### 1. Scraping
 To scrap an URL recursively (dynamic JS supported):
-1. In `src/scraping/scrape.py`, scroll down to the main block. Change the parameters.
-2. To run: 
+1. In `src/scraping/scrape.py`, scroll down to the main block. Adjust the parameters of the function.
+2. Run in terminal: 
 ```
 python -m src.scraping.scrape
 ```
@@ -48,14 +54,14 @@ python -m src.scraping.scrape
 ### 2. Chunking/Embedding/Vector Storing
 Chunk, embed, and vector store the content in `data/scraping` that was generated previously.
 #### For `data/scraping/json_docs`
-Recommended approach, as generated JSON docs contain the sources RAG agent needs to generate the correct response format.
-To run:
+Recommended approach, as generated JSON docs contain the sources RAG agent needs to generate the correct response format.\
+Run in terminal:
 ```
 python -m src.processing.embed_with_source
 ```
 #### For `data/scraping/text_docs`
-Not recommended for later RAG agent workflow.
-To run:
+Not recommended for later RAG agent workflow.\
+Run in terminal:
 ```
 python -m src.processing.embed_no_source
 ```
@@ -65,16 +71,14 @@ To config the context and prompt for your chatbot:
 1. Open up src/rag/rag_chat.py and edit SYSTEM_PROMPT and the interface (docstring and decorator description) of the _retrieve_context tool with the @tool decorator.
 2. Create a file `data/context/big_context.json` and enter your big-picture context for your chatbot. Ideally the content should be in JSON dict format, but the app won't break if it isn't.
 
-To simulate a terminal chat loop, run in terminal:
+To simulate a command line chat loop, run in terminal:
 ```
 python -m src.rag.rag_chat
 ```
-To open gradio demo app in browser, run in terminal:
+To open up a gradio demo app in browser, run in terminal:
 ```
 python -m gradio_app.app
 ```
-
-This demo has been made private due to privacy concern: [notion-chatbot](https://huggingface.co/spaces/preston-cai/notion-chatbot)
 
 ## Project Tree
 ```
