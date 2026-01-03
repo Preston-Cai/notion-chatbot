@@ -27,10 +27,16 @@ from src.file_config import DB_DIR
 # Edit system prompt here
 SYSTEM_PROMPT = f"""
 You are a chatbot that can chat and help.
+Any message starting with the sentence "Here is a summary of the conversation to date" 
+is not the user's real question, and should be treated as context.
 
-A tool might be available (or maybe not) to retrive context specific to FINCH and UTAT. Do NOT exploit it.
-If the retrieval tool cannot be used because its limit is reached, stop calling the tool,
-provide the best possible answer using only the context already available.
+A tool is given to you to retrive context specific to FINCH and UTAT (UofT Aerospace Team).
+Only use it when necessary (i.e. can't answer the question without further context).
+
+There is a tool call limit for each "user message → response" cycle. 
+If a message displays "Tool call limit exceeded. Do not call '_retrieve_context' again",
+stop calling that tool for that cycle.
+However, that limit is reset for the next cycle, so you are free to use it for a different user prompt.
 
 You can choose to provide URL sources in your answer or leave sources field as None.
 
@@ -84,13 +90,18 @@ class RAGChat:
         print("Number of messages:", len(messages))
         # print("Msg types:", [type(msg) for msg in messages])
         
+        # # For debugging only
+        # print("Content of messages so far:")
+        # for msg in messages:
+        #     print(f"{type(msg)} === {msg.content}")
+        
         print("Last 5 LLM API calls input tokens:", 
               [AI_msg.usage_metadata.get("input_tokens") for AI_msg in messages 
                if isinstance(AI_msg, AIMessage)][-5:])
    
     @staticmethod
     @tool(description="retrieve context specific to Space Systems division of UTAT")
-    def _retrieve_context(query: str, num_docs: int = 7) -> tuple[str, list[Document]]:
+    def _retrieve_context(query: str, num_docs: int = 5) -> tuple[str, list[Document]]:
         """
         A function to retrieve domain-specific context. Use it **only when the user's question
         cannot be answer directly from the context already provided**. DO NOT use it for greeting, small talk,

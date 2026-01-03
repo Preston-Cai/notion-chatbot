@@ -91,6 +91,13 @@ chromadb.errors.InternalError: ValueError: Batch size of 10328 is greater than m
 - Best solution found: use LangChain's built-in `SummarizationMiddleware`: [LangChain Reference](https://reference.langchain.com/python/langchain/middleware/#langchain.agents.middleware.SummarizationMiddleware)
 - Why is this better than implementing custom `trim_messages` or `delete_messages` middleware? This built-in feature ensures AI/Tool message pairs remain together and automatically avoids causing the message history to be invalid to the LLM provider.
 12. Custom a middleware to log token sizes.
+13. LangChain's summarization middleware creates a new problem: After summarization is triggered, it summrizes old messages and wrap them in type `HumanMessage`, which is followed by the real user's question, also wrapped in `HumanMessage`. The LLM often misinterprets the first part thinking it's the user's question, giving responses that are duplicates of a previous response.
+- I logged the messages and see the exact format of the summary. Here is how it looks like:
+```
+<class 'langchain_core.messages.human.HumanMessage'> Here is a summary of the conversation to date: ...
+```
+- How I fixed it: in the system prompt, make it explicit that any message starting with "Here is a summary of the conversation to date" is not the user's real question, and serves as context.
+14. More prompt engineering: similar to the solution in issue 13, I impose explicitly in the system prompt that if a message indicating tool call limit reached is displayed, stop calling the tool until user sends the next message. I tried this before on gpt-5-nano, and it worked terribly, but it should be working much better on gpt-4o.
 
 ## Packaging into Product: Quick demo
 ### Short-term demo
