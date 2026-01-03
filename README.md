@@ -52,15 +52,17 @@ python -m src.scraping.scrape
 4. Find the data in `data/scraping`.
 
 ### 2. Chunking/Embedding/Vector Storing
-Chunk, embed, and vector store the content in `data/scraping` that was generated previously.
+Chunk, embed, and vector store the content in `data/scraping` that has been generated in step 1.
 #### For `data/scraping/json_docs`
-Recommended approach, as generated JSON docs contain the sources RAG agent needs to generate the correct response format.\
+- Recommended approach. Generated JSON docs contain the sources that the RAG agent needs to generate the correct response format.
+
 Run in terminal:
 ```
 python -m src.processing.embed_with_source
 ```
 #### For `data/scraping/text_docs`
-Not recommended for later RAG agent workflow.\
+- Not recommended for later RAG agent workflow.
+
 Run in terminal:
 ```
 python -m src.processing.embed_no_source
